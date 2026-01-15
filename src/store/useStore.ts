@@ -54,7 +54,7 @@ export const useStore = create<GameState>()(
             setHoveredObject: (id) => set({ hoveredObject: id }),
 
             // Container Actions
-            openContainer: (containerId) => set({ activeContainerId: containerId, isNotesPanelOpen: false }), // Close sidebar if ever present
+            openContainer: (containerId) => set({ activeContainerId: containerId }),
             closeContainer: () => set({ activeContainerId: null }),
 
             // Note Actions

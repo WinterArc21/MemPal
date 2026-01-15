@@ -80,11 +80,13 @@ export default function InteractionManager() {
         };
     }, [hoveredObject, scene, isUIOpen]);
 
+    const raycaster = useMemo(() => new THREE.Raycaster(), []);
+    const center = useMemo(() => new THREE.Vector2(0, 0), []);
+
     useFrame(({ camera, scene }) => {
         if (isUIOpen) return;
 
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        raycaster.setFromCamera(center, camera);
 
         const intersects = raycaster.intersectObjects(scene.children, true);
 
