@@ -330,9 +330,46 @@ export default function Character() {
             camera.lookAt(cameraTarget);
         } else {
             // Normal follow camera
-            const desiredCamPos = characterPos.clone().add(cameraOffset);
-            camera.position.lerp(desiredCamPos, 0.06);
-            cameraTarget.lerp(characterPos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0.08);
+            const rawCamPos = characterPos.clone().add(cameraOffset);
+            const desiredCamPos = rawCamPos.clone();
+
+            // CLAMP camera to room bounds to prevent clipping (Room is approx 21x21)
+            // Walls are at +/- 10.5, Ceiling at 5.2
+            desiredCamPos.x = THREE.MathUtils.clamp(desiredCamPos.x, -9.5, 9.5);
+            desiredCamPos.z = THREE.MathUtils.clamp(desiredCamPos.z, -9.5, 9.5);
+
+            // "Smart Cornering": If wall pushes camera in (Squash), slide it SIDEWAYS to keep distance
+            const originalDist = new THREE.Vector2(rawCamPos.x - characterPos.x, rawCamPos.z - characterPos.z).length();
+
+            // 1. Initial Clamp
+            let finalPos = desiredCamPos.clone();
+            finalPos.x = THREE.MathUtils.clamp(finalPos.x, -9.5, 9.5);
+            finalPos.z = THREE.MathUtils.clamp(finalPos.z, -9.5, 9.5);
+
+            // 2. Check compression
+            const clampedDist = new THREE.Vector2(finalPos.x - characterPos.x, finalPos.z - characterPos.z).length();
+            const compressRatio = THREE.MathUtils.clamp(clampedDist / originalDist, 0.0, 1.0);
+
+            // 3. If compressed, SLIDE along the wall (X-axis offset)
+            // This turns a "squash" into a "side angle"
+            if (compressRatio < 0.9) {
+                const slideAmount = (1.0 - compressRatio) * 4.0; // Slide up to 4 units
+                finalPos.x += slideAmount;
+                // Re-clamp X in case we hit the side wall
+                finalPos.x = THREE.MathUtils.clamp(finalPos.x, -9.5, 9.5);
+            }
+
+            // 4. Height Adjustment (Less aggressive now that we slide)
+            // Drop Y slightly to keep things framed, but staying above shoulders (2.0)
+            finalPos.y = THREE.MathUtils.lerp(2.0, 3.5, compressRatio);
+            finalPos.y = THREE.MathUtils.clamp(finalPos.y, 1.5, 4.8);
+
+            camera.position.lerp(finalPos, 0.08);
+            cameraTarget.lerp(characterPos.clone().add(new THREE.Vector3(0, 1.4, 0)), 0.1); // Look at upper body/head
+            camera.lookAt(cameraTarget);
+
+            camera.position.lerp(desiredCamPos, 0.08); // Slightly faster lerp for collision consistency
+            cameraTarget.lerp(characterPos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0.1);
             camera.lookAt(cameraTarget);
         }
     });

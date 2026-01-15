@@ -395,38 +395,24 @@ export default function Overlay() {
     return (
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 font-sans">
 
-            {/* Interaction Prompt (Dynamic Themed) */}
+            {/* Interaction Prompt (Minimal "Squared Bubble" - Eye Level) */}
             {!activeContainerId && hoveredObject && (
                 <div
-                    className="flex items-center gap-5 px-6 py-4 rounded-2xl shadow-xl animate-in fade-in slide-in-from-bottom-4 backdrop-blur-md transition-all ease-out"
-                    style={{
-                        position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)',
-                        backgroundColor: `${promptTheme.bg}E6`, // 90% opacity for glass effect
-                        border: `1px solid ${promptTheme.border}`,
-                        color: promptTheme.text,
-                        boxShadow: `0 20px 40px -10px ${promptTheme.primary}40, 0 0 0 1px ${promptTheme.border} inset`
-                    }}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-8 flex items-center gap-3 p-2 pr-4 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-300"
                 >
-                    {/* Icon Container with subtle background for separation */}
+                    {/* Icon Bubble */}
                     <div
-                        className="p-3 rounded-xl flex items-center justify-center bg-white/40 shadow-inner"
-                        style={{ color: promptTheme.primary }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white shadow-inner"
                     >
                         {getFurnitureIcon(hoveredObject)}
                     </div>
 
-                    <div className="flex flex-col gap-0.5">
-                        <span className="font-extrabold text-xl capitalize tracking-tight leading-none">
-                            {hoveredObject}
-                        </span>
+                    {/* Divider */}
+                    <div className="w-px h-6 bg-white/20" />
 
-                        <div className="flex items-center gap-2 text-sm font-medium opacity-80">
-                            {/* Premium Keyboard Key Style */}
-                            <div className="flex items-center justify-center w-6 h-6 rounded bg-white border-b-2 border-gray-200 shadow-sm text-xs font-bold font-mono text-gray-600">
-                                E
-                            </div>
-                            <span>to open</span>
-                        </div>
+                    {/* Key Hint "E" */}
+                    <div className="w-8 h-8 rounded-lg bg-white shadow-[0_3px_0_0_rgba(200,200,200,1)] flex items-center justify-center">
+                        <span className="text-black font-extrabold font-mono text-sm">E</span>
                     </div>
                 </div>
             )}
