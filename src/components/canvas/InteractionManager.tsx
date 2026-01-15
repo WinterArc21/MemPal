@@ -5,8 +5,7 @@ import * as THREE from "three";
 import { useStore } from "@/store/useStore";
 import { useEffect, useRef, useMemo } from "react";
 
-const INTERACTABLE_NAMES = ["bed", "fridge", "desk", "bookshelf"];
-const INTERACTION_DISTANCE = 5;
+import { FURNITURE_POSITIONS, INTERACTION_DISTANCE } from "@/lib/constants";
 
 export default function InteractionManager() {
     const setHoveredObject = useStore((state) => state.setHoveredObject);
@@ -80,35 +79,31 @@ export default function InteractionManager() {
         };
     }, [hoveredObject, scene, isUIOpen]);
 
-    const raycaster = useMemo(() => new THREE.Raycaster(), []);
-    const center = useMemo(() => new THREE.Vector2(0, 0), []);
 
-    useFrame(({ camera, scene }) => {
+
+    useFrame(() => {
         if (isUIOpen) return;
 
-        raycaster.setFromCamera(center, camera);
+        // Get actual player position from store
+        const playerPosArray = useStore.getState().playerPosition;
+        const playerPos = new THREE.Vector3(playerPosArray[0], playerPosArray[1], playerPosArray[2]);
 
-        const intersects = raycaster.intersectObjects(scene.children, true);
+        let closestObject: string | null = null;
+        let closestDistance = INTERACTION_DISTANCE;
 
-        let found: string | null = null;
-        for (let i = 0; i < intersects.length; i++) {
-            const obj = intersects[i].object;
+        // Find the closest interactable furniture
+        for (const [name, pos] of Object.entries(FURNITURE_POSITIONS)) {
+            const furniturePos = new THREE.Vector3(pos[0], pos[1], pos[2]);
+            const distance = playerPos.distanceTo(furniturePos);
 
-            if (intersects[i].distance > INTERACTION_DISTANCE) continue;
-
-            let currentObj: THREE.Object3D | null = obj;
-            while (currentObj) {
-                if (INTERACTABLE_NAMES.includes(currentObj.name)) {
-                    found = currentObj.name;
-                    break;
-                }
-                currentObj = currentObj.parent;
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestObject = name;
             }
-            if (found) break;
         }
 
-        if (found !== hoveredObject) {
-            setHoveredObject(found);
+        if (closestObject !== hoveredObject) {
+            setHoveredObject(closestObject);
         }
     });
 

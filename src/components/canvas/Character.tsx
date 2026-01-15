@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { CapsuleCollider, RigidBody } from "@react-three/rapier";
 import { useRef, useState } from "react";
 import * as THREE from "three";
+import { useStore } from "@/store/useStore";
 
 const MOVEMENT_SPEED = 5;
 const JUMP_FORCE = 5;
@@ -305,14 +306,35 @@ export default function Character() {
             }
         }
 
-        // Camera follow
+        // Camera follow or zoom
         const bodyPos = body.translation();
         const characterPos = new THREE.Vector3(bodyPos.x, bodyPos.y, bodyPos.z);
-        const desiredCamPos = characterPos.clone().add(cameraOffset);
 
-        camera.position.lerp(desiredCamPos, 0.06);
-        cameraTarget.lerp(characterPos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0.08);
-        camera.lookAt(cameraTarget);
+        // Broadcast player position to store for proximity detection
+        useStore.getState().setPlayerPosition([bodyPos.x, bodyPos.y, bodyPos.z]);
+
+        // Check if we should zoom to a target
+        const zoomTarget = useStore.getState().cameraZoomTarget;
+
+        if (zoomTarget) {
+            // Calculate a viewing position that frames the target furniture
+            const target = new THREE.Vector3(zoomTarget[0], zoomTarget[1], zoomTarget[2]);
+            const direction = target.clone().sub(characterPos).normalize();
+            // Position camera between player and target, looking at target
+            const viewDistance = 3.5; // How close to get to the furniture
+            const viewingPos = target.clone().sub(direction.multiplyScalar(viewDistance));
+            viewingPos.y = zoomTarget[1] + 1.5; // Slight elevation for better framing
+
+            camera.position.lerp(viewingPos, 0.04); // Smooth zoom transition
+            cameraTarget.lerp(target, 0.06);
+            camera.lookAt(cameraTarget);
+        } else {
+            // Normal follow camera
+            const desiredCamPos = characterPos.clone().add(cameraOffset);
+            camera.position.lerp(desiredCamPos, 0.06);
+            cameraTarget.lerp(characterPos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0.08);
+            camera.lookAt(cameraTarget);
+        }
     });
 
     return (

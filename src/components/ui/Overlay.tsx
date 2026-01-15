@@ -1,32 +1,10 @@
 "use client";
 
 import { useStore, NoteEntry } from "@/store/useStore";
-import { X, Save, Pin, PinOff, Trash2, Search, List, Bold, Italic, Underline, Palette, Sparkles, BookOpen, Clock, Plus, LayoutGrid, List as ListIcon, StickyNote } from "lucide-react";
+import { X, Save, Pin, PinOff, Trash2, Search, List, Bold, Italic, Underline, Palette, Sparkles, BookOpen, Clock, Plus, LayoutGrid, List as ListIcon, StickyNote, Bed, Monitor, Library, Snowflake, Package } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
-// ============= THEME CONFIGURATION =============
-const DEFAULT_THEME = {
-    bg: '#FFF9F0',      // Warm Cream
-    text: '#2C3E50',    // Dark Slate
-    primary: '#4ECDC4', // Retro Teal
-    accent: '#E74C3C',  // Red
-    border: '#E5D5C5',  // Warm Grey/Beige
-    wood: '#DEB887',    // Wood Accent
-    white: '#FFFFFF',
-    surface: '#FFFAF5',
-};
-
-const OBJECT_THEMES: Record<string, typeof DEFAULT_THEME> = {
-    bookshelf: { ...DEFAULT_THEME, bg: '#FDF5E6', primary: '#8B4513', border: '#D2B48C', text: '#3E2723' }, // Old Lace / Saddle Brown
-    bed: { ...DEFAULT_THEME, bg: '#FFF0F5', primary: '#E74C3C', border: '#FFB6C1', text: '#4A235A' }, // Lavender Blush / Red
-    desk: { ...DEFAULT_THEME, bg: '#F0F8FF', primary: '#2980B9', border: '#ADD8E6', text: '#154360' }, // Alice Blue / Blue
-    fridge: { ...DEFAULT_THEME, bg: '#E0F2F1', primary: '#1ABC9C', border: '#B2DFDB', text: '#004D40' }, // Teal / Green
-};
-
-function getTheme(id: string | null) {
-    if (!id) return DEFAULT_THEME;
-    return OBJECT_THEMES[id] || DEFAULT_THEME;
-}
+import { DEFAULT_THEME, getTheme } from "@/lib/theme";
 
 // ============= UTILS =============
 function formatDate(timestamp: number) {
@@ -39,30 +17,30 @@ function formatDate(timestamp: number) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function getFurnitureEmoji(id: string) {
-    const emojis: Record<string, string> = {
-        bed: "🛏️",
-        desk: "💻",
-        fridge: "🧊",
-        bookshelf: "📚",
-    };
-    return emojis[id] || "📦";
+function getFurnitureIcon(id: string) {
+    const iconProps = { className: "w-8 h-8" };
+    switch (id) {
+        case 'bed': return <Bed {...iconProps} />;
+        case 'desk': return <Monitor {...iconProps} />;
+        case 'fridge': return <Snowflake {...iconProps} />;
+        case 'bookshelf': return <Library {...iconProps} />;
+        default: return <Package {...iconProps} />;
+    }
 }
 
 // ============= COMPONENTS =============
 
 function FormattingToolbar({ onFormat, theme }: { onFormat: (cmd: string) => void, theme: typeof DEFAULT_THEME }) {
-    const btnClass = "p-2 rounded-lg transition-all hover:scale-105 active:scale-95";
-    const activeStyle = { backgroundColor: `${theme.primary}20`, color: theme.primary };
+    const btnClass = "p-1.5 rounded-md transition-all hover:bg-black/5 text-xs font-medium";
     const defaultStyle = { color: theme.text };
 
     return (
-        <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
-            <button onClick={() => onFormat('bold')} className={btnClass} style={defaultStyle} title="Bold"><Bold className="w-4 h-4" /></button>
-            <button onClick={() => onFormat('italic')} className={btnClass} style={defaultStyle} title="Italic"><Italic className="w-4 h-4" /></button>
-            <button onClick={() => onFormat('underline')} className={btnClass} style={defaultStyle} title="Underline"><Underline className="w-4 h-4" /></button>
-            <div className="w-px h-4 mx-2" style={{ backgroundColor: theme.border }} />
-            <button onClick={() => onFormat('list')} className={btnClass} style={defaultStyle} title="List"><List className="w-4 h-4" /></button>
+        <div className="flex items-center gap-1">
+            <button aria-label="Bold" onClick={() => onFormat('bold')} className={`${btnClass}`} style={defaultStyle} title="Bold"><Bold className="w-4 h-4" /></button>
+            <button aria-label="Italic" onClick={() => onFormat('italic')} className={`${btnClass}`} style={defaultStyle} title="Italic"><Italic className="w-4 h-4" /></button>
+            <button aria-label="Underline" onClick={() => onFormat('underline')} className={`${btnClass}`} style={defaultStyle} title="Underline"><Underline className="w-4 h-4" /></button>
+            <div className="w-px h-3 mx-1 bg-current opacity-20" style={{ color: theme.text }} />
+            <button aria-label="List" onClick={() => onFormat('list')} className={`${btnClass}`} style={defaultStyle} title="List"><List className="w-4 h-4" /></button>
         </div>
     );
 }
@@ -71,7 +49,7 @@ function ColorPicker({ currentColor, onColorChange, theme }: { currentColor: str
     const [isOpen, setIsOpen] = useState(false);
     return (
         <div className="relative">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all hover:scale-105" style={{ backgroundColor: currentColor, borderColor: theme.border }}>
+            <button aria-label="Choose color" onClick={() => setIsOpen(!isOpen)} className="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none" style={{ backgroundColor: currentColor, borderColor: theme.border, '--tw-ring-color': theme.primary } as any}>
                 <Palette className="w-4 h-4 text-black/40" />
             </button>
             {isOpen && (
@@ -86,31 +64,72 @@ function ColorPicker({ currentColor, onColorChange, theme }: { currentColor: str
 }
 
 function NoteCard({ note, onClick, onPin, onDelete, theme }: { note: NoteEntry; onClick: () => void; onPin: () => void; onDelete: () => void; theme: typeof DEFAULT_THEME }) {
+    const isWhite = note.color === '#FFFFFF';
     return (
         <div
             onClick={onClick}
-            className="group relative p-4 rounded-xl cursor-pointer border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-32 flex flex-col"
-            style={{ backgroundColor: note.color, borderColor: note.color === '#FFFFFF' ? theme.border : 'transparent' }}
+            className="group relative p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-40 overflow-hidden"
+            style={{
+                backgroundColor: note.color,
+                border: isWhite ? `1px solid ${theme.border}` : 'none',
+                color: theme.text
+            }}
         >
-            <div className="flex justify-between items-start mb-2">
-                <h4 className="font-bold text-sm capitalize truncate pr-4" style={{ color: theme.text }}>{note.title || "Untitled Note"}</h4>
-                <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-gray-500 font-medium">{formatDate(note.updatedAt)}</span>
-                    {note.pinned && <Pin className="w-3.5 h-3.5 fill-current" style={{ color: theme.primary }} />}
-                </div>
+            {/* Hover Actions (Floating) */}
+            <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onPin(); }}
+                    className="p-1.5 bg-white/90 rounded-full hover:text-yellow-600 shadow-sm transition-transform hover:scale-110"
+                    title={note.pinned ? "Unpin" : "Pin"}
+                >
+                    <Pin className={`w-3.5 h-3.5 ${note.pinned ? 'fill-current text-yellow-500' : ''}`} />
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    className="p-1.5 bg-white/90 rounded-full hover:text-red-500 shadow-sm transition-transform hover:scale-110"
+                    title="Delete"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
             </div>
-            <p className="text-sm leading-relaxed opacity-80 line-clamp-3" style={{ color: theme.text }}>{note.content || "Empty content..."}</p>
 
-            <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={(e) => { e.stopPropagation(); onPin(); }} className="p-1.5 bg-white/80 rounded-lg hover:text-[#4ECDC4]"><Pin className="w-3 h-3" /></button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 bg-white/80 rounded-lg hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
+            {/* Content */}
+            <div className="flex flex-col h-full">
+                <h4 className={`font-bold text-lg mb-2 leading-tight ${!note.title ? 'opacity-30 italic' : ''}`}>
+                    {note.title || "Untitled"}
+                </h4>
+
+                {note.content ? (
+                    <p className="text-sm opacity-70 leading-relaxed line-clamp-4">
+                        {note.content}
+                    </p>
+                ) : (
+                    <div className="flex-1 opacity-10 flex flex-col gap-2 mt-1">
+                        <div className="h-2 w-3/4 bg-current rounded-full" />
+                        <div className="h-2 w-1/2 bg-current rounded-full" />
+                    </div>
+                )}
             </div>
+
+            {/* Footer Meta */}
+            <div className="absolute bottom-4 left-5 text-[10px] uppercase tracking-wider font-semibold opacity-40">
+                {formatDate(note.updatedAt)}
+            </div>
+
+            {/* Pinned Indicator (Always visible if pinned) */}
+            {note.pinned && (
+                <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400 opacity-50" />
+            )}
         </div>
     );
 }
 
 function ContainerModal({ containerId, onClose }: { containerId: string, onClose: () => void }) {
-    const { getNotesByParent, createNote, openNote, togglePinNote, deleteNote } = useStore();
+    const getNotesByParent = useStore(state => state.getNotesByParent);
+    const createNote = useStore(state => state.createNote);
+    const openNote = useStore(state => state.openNote);
+    const togglePinNote = useStore(state => state.togglePinNote);
+    const deleteNote = useStore(state => state.deleteNote);
     const notes = getNotesByParent(containerId);
     const theme = getTheme(containerId);
 
@@ -132,13 +151,13 @@ function ContainerModal({ containerId, onClose }: { containerId: string, onClose
                 {/* Header */}
                 <div className="px-8 py-6 border-b flex justify-between items-center bg-white/50 backdrop-blur-sm" style={{ borderColor: theme.border }}>
                     <div className="flex items-center gap-4">
-                        <div className="text-4xl filter drop-shadow-sm">{getFurnitureEmoji(containerId)}</div>
+                        <div className="text-4xl filter drop-shadow-sm text-black/50">{getFurnitureIcon(containerId)}</div>
                         <div>
                             <h2 className="text-2xl font-bold capitalize" style={{ color: theme.text }}>{containerId}</h2>
                             <p className="text-sm opacity-60 font-medium">{notes.length} items stored</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors">
+                    <button aria-label="Close" onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
                         <X className="w-6 h-6 opacity-50" />
                     </button>
                 </div>
@@ -194,7 +213,10 @@ function ContainerModal({ containerId, onClose }: { containerId: string, onClose
 }
 
 function NoteEditor({ noteId, onClose }: { noteId: string, onClose: () => void }) {
-    const { updateNote, togglePinNote, notes, activeContainerId } = useStore();
+    const updateNote = useStore(state => state.updateNote);
+    const togglePinNote = useStore(state => state.togglePinNote);
+    const notes = useStore(state => state.notes);
+    const activeContainerId = useStore(state => state.activeContainerId);
     const note = notes[noteId];
     // Derive theme from active container 
     const theme = getTheme(activeContainerId || note?.parentId);
@@ -275,66 +297,82 @@ function NoteEditor({ noteId, onClose }: { noteId: string, onClose: () => void }
     if (!note) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in pointer-events-auto" onClick={handleDone}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm animate-in fade-in pointer-events-auto" onClick={handleDone}>
             <div
-                className="w-[500px] h-[600px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
-                style={{ backgroundColor: theme.bg, border: `4px solid ${color === '#FFFFFF' ? theme.border : color}` }}
+                className="w-[600px] h-[700px] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+                style={{ backgroundColor: theme.bg, boxShadow: `0 25px 50px -12px ${theme.primary}30` }}
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="px-6 py-4 border-b flex justify-between items-center bg-white/50" style={{ borderColor: theme.border }}>
+                {/* Header Actions */}
+                <div className="px-8 py-6 flex justify-between items-center z-10">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white/50 shadow-sm">
-                            <StickyNote className="w-5 h-5" style={{ color: theme.primary }} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs uppercase font-bold tracking-wider opacity-40" style={{ color: theme.text }}>Editing Note</span>
-                            <span className="text-[10px] text-gray-400">{isSaving ? 'Saving...' : 'All changes saved'}</span>
-                        </div>
+                        <button
+                            onClick={() => togglePinNote(noteId)}
+                            className={`p-2 rounded-full transition-all ${note.pinned ? 'bg-yellow-100 text-yellow-600' : 'hover:bg-black/5 text-gray-400'}`}
+                            title={note.pinned ? "Unpin" : "Pin"}
+                        >
+                            <Pin className={`w-5 h-5 ${note.pinned ? 'fill-current' : ''}`} />
+                        </button>
+                        <span className="text-xs font-semibold tracking-wider opacity-30 uppercase">{isSaving ? 'Saving...' : 'Saved'}</span>
                     </div>
+
                     <div className="flex items-center gap-2">
                         <ColorPicker currentColor={color} onColorChange={setColor} theme={theme} />
-                        <button onClick={handleDone} className="relative z-50 p-2 hover:bg-black/5 rounded-full transition-transform hover:scale-110 active:scale-90"><X className="w-5 h-5 opacity-60" /></button>
+                        <button
+                            aria-label="Close"
+                            onClick={handleDone}
+                            className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
 
-                <FormattingToolbar onFormat={handleFormat} theme={theme} />
+                {/* Content Area */}
+                <div className="flex-1 flex flex-col px-12 pb-12 overflow-hidden">
+                    {/* Title */}
+                    <input
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        placeholder="Untitled Note"
+                        className="text-4xl font-extrabold bg-transparent border-none focus:outline-none focus:placeholder:opacity-50 w-full placeholder:opacity-20 text-balance mb-6"
+                        style={{ color: theme.text }}
+                    />
 
-                {/* Title Input */}
-                <input
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    placeholder="Untitled Note"
-                    className="px-8 mt-6 text-3xl font-bold bg-transparent border-none focus:outline-none w-full placeholder:opacity-30"
-                    style={{ color: theme.text }}
-                />
+                    {/* Toolbar (Inline with text area start) */}
+                    <div className="flex items-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
+                        <FormattingToolbar onFormat={handleFormat} theme={theme} />
+                    </div>
 
-                <textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    placeholder="Write something memorable..."
-                    className="flex-1 px-8 py-4 text-lg bg-transparent resize-none focus:outline-none custom-scrollbar leading-relaxed"
-                    style={{ color: theme.text }}
-                    autoFocus
-                />
+                    {/* Text Divider */}
+                    <div className="w-full h-px bg-current opacity-10 mb-6" style={{ color: theme.text }} />
 
-                <div className="p-4 border-t bg-white/50 flex justify-between items-center" style={{ borderColor: theme.border }}>
-                    <button onClick={() => togglePinNote(noteId)} className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${note.pinned ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-gray-400 hover:bg-black/5'}`}>
-                        <Pin className="w-3 h-3" /> {note.pinned ? 'Pinned' : 'Pin This'}
-                    </button>
-                    <button onClick={handleDone} className="px-6 py-2 rounded-xl text-white font-bold text-sm hover:shadow-lg transition-all" style={{ backgroundColor: theme.text }}>Done</button>
+                    {/* Body */}
+                    <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        placeholder="Write your thoughts..."
+                        className="flex-1 w-full text-lg bg-transparent resize-none focus:outline-none custom-scrollbar leading-relaxed font-medium opacity-90"
+                        style={{ color: theme.text }}
+                        autoFocus
+                    />
                 </div>
+
+                {/* Footer Gradient for style */}
+                <div className="h-2 w-full opacity-50" style={{ background: `linear-gradient(to right, ${theme.primary}, ${theme.accent})` }} />
             </div>
         </div>
     );
 }
 
 export default function Overlay() {
-    const {
-        hoveredObject, activeContainerId, activeNoteId,
-        openContainer, closeContainer, closeNote
-    } = useStore();
+    const hoveredObject = useStore(state => state.hoveredObject);
+    const activeContainerId = useStore(state => state.activeContainerId);
+    const activeNoteId = useStore(state => state.activeNoteId);
+    const openContainer = useStore(state => state.openContainer);
+    const closeContainer = useStore(state => state.closeContainer);
+    const closeNote = useStore(state => state.closeNote);
 
     // Dynamic theme for prompt
     const promptTheme = getTheme(hoveredObject);
@@ -360,20 +398,34 @@ export default function Overlay() {
             {/* Interaction Prompt (Dynamic Themed) */}
             {!activeContainerId && hoveredObject && (
                 <div
-                    className="flex items-center gap-4 px-6 py-3 rounded-2xl shadow-xl animate-in fade-in slide-in-from-bottom-4 backdrop-blur-sm transition-all"
+                    className="flex items-center gap-5 px-6 py-4 rounded-2xl shadow-xl animate-in fade-in slide-in-from-bottom-4 backdrop-blur-md transition-all ease-out"
                     style={{
                         position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)',
-                        backgroundColor: promptTheme.bg,
-                        border: `2px solid ${promptTheme.border}`,
+                        backgroundColor: `${promptTheme.bg}E6`, // 90% opacity for glass effect
+                        border: `1px solid ${promptTheme.border}`,
                         color: promptTheme.text,
-                        boxShadow: `0 10px 25px -5px ${promptTheme.primary}40`
+                        boxShadow: `0 20px 40px -10px ${promptTheme.primary}40, 0 0 0 1px ${promptTheme.border} inset`
                     }}
                 >
-                    <span className="text-3xl filter drop-shadow-md">{getFurnitureEmoji(hoveredObject)}</span>
-                    <div className="flex flex-col">
-                        <span className="font-bold text-lg capitalize tracking-wide">{hoveredObject}</span>
-                        <div className="flex items-center gap-2 text-xs opacity-70">
-                            <span className="bg-black/10 px-1.5 py-0.5 rounded font-mono border border-black/5">E</span> to open
+                    {/* Icon Container with subtle background for separation */}
+                    <div
+                        className="p-3 rounded-xl flex items-center justify-center bg-white/40 shadow-inner"
+                        style={{ color: promptTheme.primary }}
+                    >
+                        {getFurnitureIcon(hoveredObject)}
+                    </div>
+
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-extrabold text-xl capitalize tracking-tight leading-none">
+                            {hoveredObject}
+                        </span>
+
+                        <div className="flex items-center gap-2 text-sm font-medium opacity-80">
+                            {/* Premium Keyboard Key Style */}
+                            <div className="flex items-center justify-center w-6 h-6 rounded bg-white border-b-2 border-gray-200 shadow-sm text-xs font-bold font-mono text-gray-600">
+                                E
+                            </div>
+                            <span>to open</span>
                         </div>
                     </div>
                 </div>

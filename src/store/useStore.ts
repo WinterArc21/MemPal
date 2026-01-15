@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
+import { FURNITURE_POSITIONS } from '@/lib/constants';
 
 export interface NoteEntry {
     id: string;        // Unique UUID for the note
@@ -17,12 +18,15 @@ interface GameState {
     hoveredObject: string | null;
     activeNoteId: string | null;      // ID of the specific note being edited
     activeContainerId: string | null; // ID of the object being viewed (e.g., 'bookshelf')
+    cameraZoomTarget: [number, number, number] | null; // World position to zoom camera towards
+    playerPosition: [number, number, number]; // Player world position for proximity checks
 
     notes: Record<string, NoteEntry>; // Keyed by Note ID (UUID)
     searchQuery: string;
 
     // Interaction Actions
     setHoveredObject: (id: string | null) => void;
+    setPlayerPosition: (pos: [number, number, number]) => void;
     openContainer: (containerId: string) => void;
     closeContainer: () => void;
 
@@ -48,14 +52,28 @@ export const useStore = create<GameState>()(
             hoveredObject: null,
             activeNoteId: null,
             activeContainerId: null,
+            cameraZoomTarget: null,
+            playerPosition: [0, 0, 0],
             notes: {},
             searchQuery: '',
 
             setHoveredObject: (id) => set({ hoveredObject: id }),
+            setPlayerPosition: (pos) => set({ playerPosition: pos }),
 
             // Container Actions
-            openContainer: (containerId) => set({ activeContainerId: containerId }),
-            closeContainer: () => set({ activeContainerId: null }),
+            openContainer: (containerId) => {
+                const pos = FURNITURE_POSITIONS[containerId];
+                // Use defined position or default, lifting Y to 1.5 for better viewing angle
+                const zoomTarget: [number, number, number] | null = pos
+                    ? [pos[0], 1.5, pos[2]]
+                    : null;
+
+                set({
+                    activeContainerId: containerId,
+                    cameraZoomTarget: zoomTarget,
+                });
+            },
+            closeContainer: () => set({ activeContainerId: null, cameraZoomTarget: null }),
 
             // Note Actions
             createNote: (parentId) => {
